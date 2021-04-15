@@ -34,7 +34,7 @@
 #include "ewbik_shadow_bone_3d.h"
 #include "scene/3d/skeleton_3d.h"
 
-#define MIN_SCALE 0.1
+#define MIN_SCALE 0.01
 
 class EWBIKShadowBone3D;
 
@@ -49,11 +49,11 @@ private:
 	bool use_target_node_rotation = true;
 	Transform goal_transform;
 	int32_t num_headings;
-	Vector3 priority = Vector3(1.0, 0.0, 1.0);
+	Vector3 priority = Vector3(1.0, 1.0, 1.0);
 	real_t weight = 1.0;
 	bool follow_x, follow_y, follow_z;
 
-	Transform prev_node_xform;
+	Transform prev_node_xform = Transform();
 
 	void update_priorities();
 	void update_goal_transform(Skeleton3D *p_skeleton);

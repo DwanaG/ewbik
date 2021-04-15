@@ -38,6 +38,7 @@ int32_t SkeletonModification3DEWBIK::get_ik_iterations() const {
 void SkeletonModification3DEWBIK::set_ik_iterations(int32_t p_iterations) {
 	ERR_FAIL_COND_MSG(p_iterations <= 0, "EWBIK max iterations must be at least one. Set enabled to false to disable the EWBIK simulation.");
 	ik_iterations = p_iterations;
+	calc_done = false;
 }
 
 String SkeletonModification3DEWBIK::get_root_bone() const {
@@ -181,17 +182,23 @@ void SkeletonModification3DEWBIK::remove_effector(int32_t p_index) {
 	is_dirty = true;
 }
 
+void SkeletonModification3DEWBIK::set_enabled(bool p_enabled) {
+	enabled = p_enabled;
+	calc_done = false;
+}
+
 void SkeletonModification3DEWBIK::execute(float delta) {
 	ERR_FAIL_COND_MSG(!stack || !is_setup || skeleton == nullptr,
 			"Modification is not setup and therefore cannot execute!");
-	if (!enabled)
+	if (!enabled || stack->get_strength() <= 0.01) {
 		return;
+	}
 
 	if (is_dirty) {
 		update_skeleton();
 	}
 	if (!is_calc_done()) {
-		solve(stack->get_strength());
+		solve();
 	}
 	execution_error_found = false;
 }
@@ -230,23 +237,27 @@ void SkeletonModification3DEWBIK::setup_modification(SkeletonModificationStack3D
 	execution_error_found = false;
 }
 
-void SkeletonModification3DEWBIK::solve(real_t p_blending_delta) {
-	if (p_blending_delta <= 0.01f) {
-		return; // Skip solving
-	}
-
+void SkeletonModification3DEWBIK::solve() {
 	if (effector_count && segmented_skeleton.is_valid() && segmented_skeleton->get_effector_direct_descendents_size() > 0) {
 		update_shadow_bones_transform();
 		iterated_improved_solver();
-		update_skeleton_bones_transform(p_blending_delta);
+		update_skeleton_bones_transform(stack->get_strength());
 	}
-
 	calc_done = true;
 }
 
 void SkeletonModification3DEWBIK::iterated_improved_solver() {
-	for (int i = 0; i < ik_iterations; i++) {
+	int32_t i;
+	for (i = 0; i < ik_iterations; i++) {
+		print_line("(" + itos(i) + ") **");
 		segmented_skeleton->grouped_segment_solver(stabilization_passes, ordered_effector_list);
+		if (check_converged()) {
+			print_line("Converged in " + itos(i) + " steps.");
+			break;
+		}
+	}
+	if (i < ik_iterations) {
+		calc_done = true;
 	}
 }
 
@@ -301,6 +312,8 @@ void SkeletonModification3DEWBIK::update_skeleton_bones_transform(real_t p_blend
 		Ref<EWBIKShadowBone3D> bone = bone_list[bone_i];
 		bone->set_skeleton_bone_transform(skeleton, p_blending_delta);
 	}
+
+	prev_sk_transform = skeleton->get_global_transform();
 }
 
 void SkeletonModification3DEWBIK::update_segments() {
@@ -330,6 +343,18 @@ bool SkeletonModification3DEWBIK::is_calc_done() {
 		return false;
 	}
 
+	if (!prev_sk_transform.is_equal_approx(skeleton->get_global_transform())) {
+		return false;
+	}
+
+	// for (int32_t bi = 0; bi < bone_list.size(); bi++) {
+	// 	Ref<EWBIKShadowBone3D> bone = bone_list[bi];
+	// 	if (bone->check_skbone_changed(skeleton)) {
+	// 		calc_done = false;
+	// 		return false;
+	// 	}
+	// }
+
 	for (int32_t ei = 0; ei < multi_effector.size(); ei++) {
 		Ref<EWBIKBoneEffector3D> effector = multi_effector[ei]->get_effector();
 		if (effector->is_node_xform_changed(skeleton)) {
@@ -339,6 +364,15 @@ bool SkeletonModification3DEWBIK::is_calc_done() {
 	}
 
 	return true;
+}
+
+bool SkeletonModification3DEWBIK::check_converged() {
+	// for (int32_t bone_i = 0; bone_i < bone_list.size(); bone_i++) {
+	// 	if (!bone_list.write[bone_i]->check_converged()) {
+	// 		return false;
+	// 	}
+	// }
+	return false;
 }
 
 void SkeletonModification3DEWBIK::_validate_property(PropertyInfo &property) const {

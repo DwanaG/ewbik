@@ -194,7 +194,7 @@ real_t QCP::calc_sqrmsd(real_t &e0, real_t wsum) {
 		}
 	}
 	if (i == max_iterations) {
-		WARN_PRINT(vformat("More than %d iterations needed!", max_iterations));
+		WARN_PRINT_ONCE(vformat("More than %d iterations needed in QCP solver!", max_iterations));
 	}
 
 	real_t sqrmsd = Math::abs(2.0f * (e0 - eignv) / wsum);

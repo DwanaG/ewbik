@@ -84,6 +84,8 @@ Transform EWBIKShadowBone3D::get_global_transform() const {
 
 void EWBIKShadowBone3D::set_xform_delta(const Quat &p_rot, const Vector3 &p_offset) {
 	rot_delta *= p_rot;
+	if (!rot_delta.is_normalized())
+		print_line("DEBUG:: Rot DELTA not normalized!!!!!");
 	translation_delta += p_offset;
 	Transform rot_xform = Transform(Basis(p_rot), p_offset);
 	set_global_transform(get_global_transform() * rot_xform);

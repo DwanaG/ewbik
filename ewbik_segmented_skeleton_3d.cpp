@@ -203,25 +203,37 @@ void EWBIKSegmentedSkeleton3D::update_optimal_rotation(Ref<EWBIKShadowBone3D> p_
 	}
 
 	update_target_headings(p_for_bone, p_effectors);
+	update_tip_headings(p_for_bone, p_effectors);
 
 	real_t sqrmsd = get_manual_sqrmsd();
+	print_line("Bone: " + itos(p_for_bone->get_bone_id()) + "  Manual: " + rtos(sqrmsd));
 
 	for (int32_t i = 0; i < p_stabilization_passes + 1; i++) {
-		update_tip_headings(p_for_bone, p_effectors);
 
 		real_t new_sqrmsd = set_optimal_rotation(p_for_bone);
-		if (new_sqrmsd <= sqrmsd) {
+		if (new_sqrmsd < sqrmsd) {
 			// TODO: Consider springy bones
 			break;
 		}
 		sqrmsd = new_sqrmsd;
+
+		update_tip_headings(p_for_bone, p_effectors);
 	}
 }
 
 real_t EWBIKSegmentedSkeleton3D::set_optimal_rotation(Ref<EWBIKShadowBone3D> p_for_bone) {
 	Vector3 translation;
 	Quat rot;
+	// real_t sqrmsd = qcp.calc_optimal_rotation(tip_headings, target_headings, heading_weights, p_for_bone->is_effector(), rot, translation);
 	real_t sqrmsd = qcp.calc_optimal_rotation(tip_headings, target_headings, heading_weights, false, rot, translation);
+	print_line("Bone: " + itos(p_for_bone->get_bone_id()) + "  Rot: " + rot + "  sqrmsd: " + rtos(sqrmsd) + "  offset: " + translation);
+	if (p_for_bone->is_effector()) {
+		for (int32_t i = 0; i < heading_weights.size(); i++) {
+			print_line("(" + itos(i) + ")  Target: " + target_headings[i] + "  Tip: " + tip_headings[i]);
+		}
+	}
+	if (!rot.is_normalized())
+		print_line("DEBUG:: Rot not normalized!!!!!");
 	p_for_bone->set_xform_delta(rot, Vector3()); //translation);
 	return sqrmsd;
 }
