@@ -49,6 +49,8 @@ private:
 	Ref<IKEffector3D> effector = nullptr;
 	IKTransform xform;
 	Quat rot_delta = Quat();
+	Transform prev_transform = Transform();
+	Transform prev_skbone_transform = Transform();
 
 	static bool has_effector_descendant(BoneId p_bone, Skeleton3D *p_skeleton, const HashMap<BoneId, Ref<IKBone3D>> &p_map);
 
@@ -74,6 +76,8 @@ public:
 	void create_effector();
 	bool is_effector() const;
 	Vector<BoneId> get_children_with_effector_descendants(Skeleton3D *p_skeleton, const HashMap<BoneId, Ref<IKBone3D>> &p_map) const;
+	bool check_converged();
+	bool check_skbone_changed(Skeleton3D *p_skeleton);
 
 	IKBone3D() {}
 	IKBone3D(BoneId p_bone, const Ref<IKBone3D> &p_parent = nullptr);

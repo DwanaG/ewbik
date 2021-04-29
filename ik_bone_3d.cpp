@@ -90,19 +90,27 @@ void IKBone3D::set_rot_delta(const Quat &p_rot) {
 
 void IKBone3D::set_initial_transform(Skeleton3D *p_skeleton) {
 	Transform bxform = p_skeleton->get_bone_global_pose(bone_id);
+	prev_transform = bxform;
 	if (parent.is_valid()) {
 		bxform = parent->get_global_transform().affine_inverse() * bxform;
 	}
-	set_transform(bxform);
+	Transform rot_xform = Transform(Basis(rot_delta), Vector3());
+	set_transform(bxform * rot_xform);
+
+	// rot_delta = Quat();
+	// set_transform(bxform);
+
+	print_line("(Bone " + itos(bone_id) + ") Initial-> " + get_global_transform());
 	if (is_effector()) {
 		effector->update_goal_transform(p_skeleton);
 	}
-	rot_delta = Quat();
 }
 
 void IKBone3D::set_skeleton_bone_transform(Skeleton3D *p_skeleton, real_t p_strenght) {
 	Transform custom = Transform(Basis(rot_delta), Vector3());
 	p_skeleton->set_bone_local_pose_override(bone_id, custom, p_strenght, true);
+	prev_skbone_transform = p_skeleton->get_bone_global_pose(bone_id);
+	print_line("(Bone " + itos(bone_id) + ") Final->: " + prev_skbone_transform);
 }
 
 void IKBone3D::create_effector() {
@@ -140,6 +148,18 @@ bool IKBone3D::has_effector_descendant(BoneId p_bone, Skeleton3D *p_skeleton, co
 		}
 		return result;
 	}
+}
+
+bool IKBone3D::check_converged() {
+	Transform current = get_global_transform();
+	bool converged = prev_transform.is_equal_approx(current);
+	prev_transform = current;
+	return converged;
+}
+
+bool IKBone3D::check_skbone_changed(Skeleton3D *p_skeleton) {
+	Transform bxform = p_skeleton->get_bone_global_pose(bone_id);
+	return bxform.is_equal_approx(prev_skbone_transform);
 }
 
 void IKBone3D::_bind_methods() {

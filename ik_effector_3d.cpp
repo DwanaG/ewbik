@@ -62,7 +62,7 @@ bool IKEffector3D::is_node_xform_changed(Skeleton3D *p_skeleton) const {
 	Node *node = p_skeleton->get_node_or_null(target_nodepath);
 	if (node && node->is_class("Node3D")) {
 		Node3D *target_node = Object::cast_to<Node3D>(node);
-		return prev_node_xform != target_node->get_global_transform();
+		return prev_node_xform.is_equal_approx(target_node->get_global_transform());
 	}
 	return false;
 }

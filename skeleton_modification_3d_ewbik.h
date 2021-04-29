@@ -51,17 +51,24 @@ private:
 	bool is_dirty = true;
 	bool calc_done = false;
 
+	Transform prev_sk_transform = Transform();
+
 	// Task
 	int32_t ik_iterations = 15;
 	int32_t stabilization_passes = 1;
 
+	int32_t it = 0; // DEBUG
+	int32_t max_it = 1; // DEBUG
+
+	void solve();
 	void update_segments();
 	void update_effectors_map();
 	void update_bone_list();
 	void generate_default_effectors();
-	void update_shadow_bones_transform();
+	void update_ik_bones_transform();
 	void update_skeleton_bones_transform(real_t p_blending_delta);
 	bool is_calc_done();
+	bool check_converged();
 
 protected:
 	virtual void _validate_property(PropertyInfo &property) const override;
@@ -98,11 +105,10 @@ public:
 	void set_effector_use_node_rotation(int32_t p_index, bool p_use_node_rot);
 	bool get_effector_use_node_rotation(int32_t p_index) const;
 	void update_skeleton();
+	void set_enabled(bool p_enabled);
 
 	virtual void execute(float delta) override;
 	virtual void setup_modification(SkeletonModificationStack3D *p_stack) override;
-
-	void solve(real_t p_blending_delta);
 	void iterated_improved_solver();
 
 	SkeletonModification3DEWBIK();
